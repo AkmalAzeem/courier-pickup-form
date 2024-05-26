@@ -2,7 +2,9 @@ import JustValidate from "just-validate";
 
 const formEl = document.getElementById("courier-request-form");
 
-const validateForm = new JustValidate(formEl);
+const validateForm = new JustValidate(formEl, {
+    validateBeforeSubmitting: true,
+})
 
 validateForm.addField(
   "#name",
@@ -34,11 +36,11 @@ validateForm.addField(
       rule: "number",
     },
     {
-      rule: "minNumber",
+      rule: "minLength",
       value: 10,
     },
     {
-      rule: "maxNumber",
+      rule: "maxLength",
       value: 10,
     },
   ],
@@ -46,7 +48,6 @@ validateForm.addField(
     errorLabelCssClass: ["form-error"],
   }
 );
-
 
 validateForm.addField(
   "#pickup-date",
@@ -73,3 +74,35 @@ validateForm.addField(
     errorLabelCssClass: ["form-error"],
   }
 );
+
+
+validateForm.onSuccess((e) => {
+
+  const formData = new FormData(formEl)
+
+  const formValueObj = Object.fromEntries(formData.entries())
+
+  const newCourierData = []
+
+  const existingCourierData = localStorage.getItem("courierData")
+
+  const existingCourierArray = JSON.parse(existingCourierData)
+
+  if (existingCourierData) { 
+    existingCourierArray.push(formValueObj)
+
+    localStorage.setItem("courierData", JSON.stringify(existingCourierArray))
+  
+  } 
+  else {
+    newCourierData.push(formValueObj)
+
+    localStorage.setItem("courierData", JSON.stringify(newCourierData))
+
+  }
+
+  alert("Courier Request submitted successfully")
+  formEl.reset() 
+
+
+})
