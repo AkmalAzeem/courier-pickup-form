@@ -1,7 +1,6 @@
 import JustValidate from "just-validate";
-
-import { formatMyDate } from "./utils"
-
+import { formatMyDate } from "./utils";
+import { v4 as uuidv4 } from "uuid";
 
 const formEl = document.getElementById("courier-request-form");
 
@@ -16,6 +15,7 @@ validateForm.addField(
   [
     {
       rule: "required",
+      errorMessage: "Name is required",
     },
     {
       rule: "minLength",
@@ -78,16 +78,33 @@ validateForm.addField(
   }
 );
 
+
+validateForm.addField(
+  "#agreements",
+  [
+    {
+      rule: "required",
+      errorMessage: "You need to accept the terms and conditions"
+    },
+  ],
+  {
+    errorLabelCssClass: ["form-error"],
+  }
+);
+
 validateForm.onSuccess((e) => {
   const formData = new FormData(formEl);
 
-  const formValueObj = Object.fromEntries(formData.entries());
+  formData.append("id", uuidv4());
+  formData.append("createdAt", Date.now());
 
-  const newCourierData = [];
+  const formValueObj = Object.fromEntries(formData.entries());
 
   const existingCourierData = localStorage.getItem("courierData");
 
   const existingCourierArray = JSON.parse(existingCourierData);
+
+  const newCourierData = [];
 
   if (existingCourierData) {
     existingCourierArray.push(formValueObj);
@@ -100,6 +117,7 @@ validateForm.onSuccess((e) => {
   }
 
   alert("Courier Request submitted successfully");
+  getAllCourierDatas();
   formEl.reset();
 });
 
@@ -108,16 +126,19 @@ function getAllCourierDatas() {
 
   const courierDataArr = JSON.parse(courierData);
 
-  if (courierDataArr) {
+  const courierCardEl = document.querySelector("#courierCard");
 
-    const  courierCardEl = document.querySelector("#courierCard")
-courierCardEl.classList.remove("hidden")
+  if (courierDataArr && courierDataArr.length > 0) {
+    courierCardEl.classList.remove("hidden");
     const tableEl = document.querySelector("#courierDataTable");
 
-    const newFinalValue = []
+    tableEl.innerHTML = "";
 
-    courierDataArr.map((courierData) => {
+    const newFinalValue = [];
+
+    courierDataArr.map((courierData, index) => {
       const trEl = document.createElement("tr");
+      const tdCustomerNoEl = document.createElement("td");
       const tdEl = document.createElement("td");
       const td2El = document.createElement("td");
       const td3El = document.createElement("td");
@@ -125,37 +146,65 @@ courierCardEl.classList.remove("hidden")
       const td5El = document.createElement("td");
       const deleteBtnEl = document.createElement("button");
 
+      tdCustomerNoEl.classList.add("px-2", "py-1", "border");
+      tdCustomerNoEl.textContent = index;
+
       tdEl.classList.add("px-2", "py-1", "border");
-      tdEl.textContent = courierData.name
-      
+      tdEl.textContent = courierData.name;
+
       td2El.classList.add("px-2", "py-1", "border");
-      td2El.textContent = courierData.mobile
+      td2El.textContent = courierData.mobile;
 
       td3El.classList.add("px-2", "py-1", "border");
-      td3El.textContent = formatMyDate(courierData['pickup-date'])
+      td3El.textContent = formatMyDate(courierData["pickup-date"]);
 
       td4El.classList.add("px-2", "py-1", "border");
-      td4El.textContent = courierData['pickup-area']
+      td4El.textContent = courierData["pickup-area"];
 
-      deleteBtnEl.className = 
-      "px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-red text-sm"
-      deleteBtnEl.textContent = "Delete"
+      deleteBtnEl.className =
+        "px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-xs";
+      deleteBtnEl.textContent = "Delete";
 
+      deleteBtnEl.addEventListener("click", (e) => {
+        deleteCourierRequest(courierData);
+      });
 
       td5El.classList.add("px-2", "py-1", "border");
-      td5El.append(deleteBtnEl)
+      td5El.append(deleteBtnEl);
 
-  
-      trEl.append(tdEl, td2El, td3El, td4El, td5El)
+      trEl.append(tdCustomerNoEl, tdEl, td2El, td3El, td4El, td5El);
 
-      newFinalValue.push(trEl)
+      newFinalValue.push(trEl);
     });
 
-    newFinalValue.forEach((el) => tableEl.append(el))
+    newFinalValue.forEach((el) => tableEl.append(el));
 
+    const courierCountEl = document.querySelector("#courierCount");
+    courierCountEl.textContent = newFinalValue.length;
   } else {
+    courierCardEl.classList.add("hidden");
+
     console.log("No value available on LocalStorage");
   }
 }
-getAllCourierDatas();
 
+function deleteCourierRequest(courierRequest) {
+  const confirmation = confirm(
+    `Do you want to delete '${courierRequest["name"]}' record? `
+  );
+
+  if (confirmation) {
+    const existingCourierData = localStorage.getItem(localStorageKey);
+    const courierDataObj = JSON.parse(existingCourierData);
+
+    const otherRecords = courierDataObj.filter(
+      (courierReq) => courierReq.id != courierRequest["id"]
+    );
+
+    localStorage.setItem(localStorageKey, JSON.stringify(otherRecords));
+
+    getAllCourierDatas();
+  }
+}
+
+getAllCourierDatas();
